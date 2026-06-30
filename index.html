@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KOHLS_L6 Collaborative Heatmap</title>
+    <title>KOHLS_L6 Collaborative Architecture Workspace</title>
     <style>
+        /* Shared Baseline Variables */
         :root {
             --bg-color: #f4f6f9;
             --card-header-bg: #112277;
@@ -12,7 +13,10 @@
             --item-bg-odd: #f8faff;
             --text-color: #333;
             --border-color: #e1e4e8;
+            --accent-blue: #00b4d8;
+            --accent-green: #06d6a0;
         }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background-color: var(--bg-color);
@@ -20,7 +24,17 @@
             padding: 20px;
             color: var(--text-color);
         }
-        header {
+
+        /* View Layout Management Switch */
+        .app-view {
+            display: none;
+        }
+        .app-view.active-view {
+            display: block;
+        }
+
+        /* --- VIEW 1: MAIN DASHBOARD MATRIX STYLING --- */
+        header.main-header {
             border-bottom: 2px solid var(--border-color);
             padding-bottom: 10px;
             margin-bottom: 20px;
@@ -28,8 +42,9 @@
             justify-content: space-between;
             align-items: center;
         }
-        h1 { color: #1122cc; margin: 0; font-size: 28px; font-weight: 600; }
+        header.main-header h1 { color: #1122cc; margin: 0; font-size: 28px; font-weight: 600; }
         .loading-status { font-weight: bold; font-size: 14px; color: #666; }
+        
         .grid-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -69,16 +84,41 @@
             padding: 1px;
             cursor: pointer;
         }
-        .item-text-wrapper { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .product-link { color: #1122cc; text-decoration: none; font-size: 11px; margin-left: 5px; cursor: pointer; font-weight: bold; }
+        .item-text-wrapper { 
+            flex-grow: 1; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .item-clickable-text {
+            cursor: pointer;
+            flex-grow: 1;
+            padding: 4px 0;
+        }
+        .item-clickable-text:hover {
+            color: #1122cc;
+            text-decoration: underline;
+        }
+        .product-link { 
+            color: #1122cc; 
+            text-decoration: none; 
+            font-size: 11px; 
+            margin-left: 5px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
         .product-link:hover { text-decoration: underline; }
         
-        /* Side Panel styling */
+        /* Side Panel Drawer styling */
         .details-panel {
             position: fixed; top: 0; right: -450px; width: 400px; height: 100%;
             background-color: white; box-shadow: -4px 0 15px rgba(0,0,0,0.15);
             transition: right 0.3s ease-in-out; z-index: 1000; padding: 25px;
             box-sizing: border-box; display: flex; flex-direction: column;
+            color: #333;
         }
         .details-panel.open { right: 0; }
         .panel-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: none; z-index: 999; }
@@ -91,51 +131,419 @@
         .form-group textarea, .form-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
         .form-group textarea { resize: vertical; height: 100px; }
         .save-btn { background-color: #1122cc; color: white; border: none; padding: 10px; border-radius: 4px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: auto; }
-        .save-btn:disabled { background-color: #aaa; cursor: not-allowed; }
+
+        /* --- VIEW 2: INTEGRATED INTERACTIVE DATASHEET STYLING --- */
+        .datasheet-wrapper {
+            background-color: #0b132b;
+            color: #f8f9fa;
+            padding: 30px;
+            margin: -20px;
+            min-height: 100vh;
+        }
+        .datasheet-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .datasheet-nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #1c2541;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #3a506b;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .btn-back { background-color: #3b82f6; color: #fff; }
+        .btn-blue { background-color: var(--accent-blue); color: #fff; }
+        .btn:hover { opacity: 0.9; }
+
+        .datasheet-wrapper header {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .datasheet-wrapper header h1 { color: #fff; margin-bottom: 8px; font-size: 28px; }
+        .datasheet-wrapper header p { color: #e2e8f0; font-size: 16px; }
+
+        .instruction-banner {
+            background-color: rgba(0, 180, 216, 0.1);
+            border-left: 4px solid var(--accent-blue);
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 30px;
+            font-size: 14px;
+            color: var(--accent-blue);
+        }
+        .section-card {
+            background-color: #1c2541;
+            border: 1px solid #3a506b;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        .datasheet-wrapper h2 {
+            font-size: 20px;
+            color: var(--accent-blue);
+            margin-bottom: 15px;
+            border-bottom: 2px solid #3a506b;
+            padding-bottom: 8px;
+        }
+        .datasheet-wrapper p, .datasheet-wrapper ul { margin-bottom: 15px; font-size: 15px; }
+        .datasheet-wrapper ul { padding-left: 20px; }
+        .datasheet-wrapper li { margin-bottom: 8px; }
+
+        .datasheet-wrapper table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        .datasheet-wrapper th, .datasheet-wrapper td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #3a506b;
+        }
+        .datasheet-wrapper th {
+            background-color: rgba(0, 0, 0, 0.2);
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+        .datasheet-wrapper tr:hover { background-color: rgba(255, 255, 255, 0.02); }
+
+        /* Datasheet Inline Modifications styling */
+        .datasheet-wrapper [contenteditable="true"] {
+            padding: 4px;
+            border-radius: 4px;
+            outline: none;
+            transition: background-color 0.2s;
+        }
+        .datasheet-wrapper [contenteditable="true"]:hover { background-color: rgba(255, 255, 255, 0.05); }
+        .datasheet-wrapper [contenteditable="true"]:focus { background-color: rgba(255, 255, 255, 0.08); box-shadow: 0 0 0 2px var(--accent-blue); }
+
+        .workspace {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 6px;
+            padding: 15px;
+            border-left: 3px solid var(--accent-green);
+        }
+        .workspace-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-green);
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .notes-area { min-height: 60px; color: #a2a8d3; font-style: italic; }
+        .notes-area:focus, .notes-area:not(:empty) { color: #f8f9fa; font-style: normal; }
+
+        .media-uploader-box {
+            margin-top: 15px;
+            border: 2px dashed #3a506b;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: rgba(0,0,0,0.1);
+        }
+        .media-uploader-box p { font-size: 13px; color: #a2a8d3; margin-bottom: 10px; }
+        .input-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; }
+        .url-input {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #3a506b;
+            background: #0b132b;
+            color: #f8f9fa;
+            font-size: 13px;
+            width: 60%;
+        }
+        .media-container { margin-top: 15px; width: 100%; }
+        .media-container img { max-width: 100%; border-radius: 6px; border: 1px solid #3a506b; }
+        .video-wrapper {
+            position: relative; padding-bottom: 56.25%; height: 0; border-radius: 6px; overflow: hidden; border: 1px solid #3a506b;
+        }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>KOHLS_L6 Architecture Dashboard</h1>
-        <div class="loading-status" id="sync-status">🔄 Syncing with Google Drive...</div>
-    </header>
+    <!-- ==================== VIEW 1: HOME MAP DASHBOARD ==================== -->
+    <div id="view-dashboard" class="app-view active-view">
+        <header class="main-header">
+            <h1>KOHLS_L6 Architecture Dashboard</h1>
+            <div class="loading-status" id="sync-status">🔄 Syncing with Google Drive...</div>
+        </header>
 
-    <div class="grid-container" id="dashboard-grid"></div>
+        <div class="grid-container" id="dashboard-grid"></div>
 
-    <div class="panel-backdrop" id="backdrop" onclick="closePanel()"></div>
-    <div class="details-panel" id="details-panel">
-        <div class="panel-header">
-            <div>
-                <span id="panel-category" style="font-size: 12px; font-weight: bold; color: #666; text-transform: uppercase;">Product Specification</span>
-                <h2 id="panel-title">Item Name</h2>
+        <div class="panel-backdrop" id="backdrop" onclick="closePanel()"></div>
+        <div class="details-panel" id="details-panel">
+            <div class="panel-header">
+                <div>
+                    <span id="panel-category" style="font-size: 12px; font-weight: bold; color: #666; text-transform: uppercase;">Strategy Architecture</span>
+                    <h2 id="panel-title">Item Name</h2>
+                </div>
+                <button class="close-btn" onclick="closePanel()">&times;</button>
             </div>
-            <button class="close-btn" onclick="closePanel()">&times;</button>
-        </div>
-        
-        <div class="form-group">
-            <label>Product Version / SKU Details</label>
-            <input type="text" id="detail-sku" placeholder="e.g., Flex 4.0, Enterprise Agreement Multi-Suite">
-        </div>
-        <div class="form-group">
-            <label>Competitor Footprint Details</label>
-            <input type="text" id="detail-competitor" placeholder="e.g., Microsoft Teams, Zoom, Palo Alto">
-        </div>
-        <div class="form-group">
-            <label>Architectural Notes / Strategy</label>
-            <textarea id="detail-notes" placeholder="Enter sizing updates, migration roadmap targets, security hurdles..."></textarea>
-        </div>
-        <div class="form-group">
-            <label>Opportunity Owner</label>
-            <input type="text" id="detail-owner" placeholder="Lead Consulting Systems Engineer">
-        </div>
+            
+            <div class="form-group">
+                <label>Product Version / SKU Details</label>
+                <input type="text" id="detail-sku" placeholder="e.g., Flex 4.0, Enterprise Agreement Multi-Suite">
+            </div>
+            <div class="form-group">
+                <label>Competitor Footprint Details</label>
+                <input type="text" id="detail-competitor" placeholder="e.g., Microsoft Teams, Zoom, Palo Alto">
+            </div>
+            <div class="form-group">
+                <label>Architectural Notes / Strategy</label>
+                <textarea id="detail-notes" placeholder="Enter sizing updates, migration roadmap targets, security hurdles..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Opportunity Owner</label>
+                <input type="text" id="detail-owner" placeholder="Lead Consulting Systems Engineer">
+            </div>
 
-        <button class="save-btn" id="save-btn" onclick="saveDetails()">Save Product Details</button>
+            <button class="save-btn" id="save-btn" onclick="saveDetails()">Save Product Details</button>
+        </div>
     </div>
 
+
+    <!-- ==================== VIEW 2: INTEGRATED INTERACTIVE DATASHEET ==================== -->
+    <div id="view-datasheet" class="app-view">
+        <div class="datasheet-wrapper">
+            <div class="datasheet-container">
+                
+                <div class="datasheet-nav-bar">
+                    <button class="btn btn-back" onclick="switchView('dashboard')">⬅ Back to Dashboard Matrix</button>
+                    <div class="loading-status" style="color: #a2a8d3;" id="datasheet-sync-status">🟢 Linked</div>
+                </div>
+
+                <header>
+                    <h1 contenteditable="true">Cisco Webex Cloud Calling Technical Datasheet</h1>
+                    <p contenteditable="true">Enterprise-Grade Cloud Telephony & Collaboration Architecture Layout Workspace</p>
+                </header>
+
+                <div class="instruction-banner">
+                    <strong>💡 Integrated Spec Sheet Workspace:</strong> Click and edit any specification text. Updates save straight to your shared Google Drive workspace file instantly upon shifting focus.
+                </div>
+
+                <!-- SECTION 1 -->
+                <div class="section-card">
+                    <h2 contenteditable="true">1. System Architecture & Global Infrastructure</h2>
+                    <p contenteditable="true">Webex Calling operates on an active-active, geo-redundant network of global data centers designed to maximize media quality and minimize packet latency.</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th contenteditable="true">Architectural Element</th>
+                                <th contenteditable="true">Specification / Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td contenteditable="true"><strong>Deployment Model</strong></td>
+                                <td contenteditable="true">Public Cloud (Multi-tenant SaaS), Dedicated Instance (Hybrid option for legacy UCM features), or Webex Edge for Devices</td>
+                            </tr>
+                            <tr>
+                                <td contenteditable="true"><strong>Global Availability</strong></td>
+                                <td contenteditable="true">Offered in over 180 markets globally with localized regulatory compliance</td>
+                            </tr>
+                            <tr>
+                                <td contenteditable="true"><strong>Redundancy</strong></td>
+                                <td contenteditable="true">Geo-redundant active-active data center clusters with automated failover</td>
+                            </tr>
+                            <tr>
+                                <td contenteditable="true"><strong>Media Routing Optimization</strong></td>
+                                <td contenteditable="true"><strong>Webex Local Gateway</strong> (for local PSTN breakout) and <strong>ICE (Interactive Connectivity Establishment)</strong> for direct peer-to-peer media paths, reducing WAN bandwidth utilization</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="workspace" data-section="sec1">
+                        <div class="workspace-title">Architecture Annotations & Media Links</div>
+                        <div class="notes-area" contenteditable="true">Click to add custom local network notes, topologies, or routing exceptions...</div>
+                        <div class="media-uploader-box">
+                            <p>Attach Diagram Graphic or Video Embed Link for this Section</p>
+                            <div class="input-row">
+                                <input type="text" class="url-input" placeholder="Paste Image URL or YouTube Video URL here">
+                                <button class="btn btn-blue" onclick="addMedia(this)">Render Media</button>
+                            </div>
+                            <div class="media-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2 -->
+                <div class="section-card">
+                    <h2 contenteditable="true">2. PSTN Connectivity Options</h2>
+                    <p contenteditable="true">Webex Calling provides flexible PSTN architecture deployment options to fit varying regional and infrastructure requirements.</p>
+                    <ul>
+                        <li contenteditable="true"><strong>Cisco Calling Plans:</strong> A fully managed cloud PSTN solution provided directly by Cisco. Includes procurement, porting, and billing directly via the Control Hub.</li>
+                        <li contenteditable="true"><strong>Cloud Connected PSTN (CCP):</strong> Route calling traffic through authorized, top-tier third-party telecommunication providers utilizing direct peering to the Webex Cloud.</li>
+                        <li contenteditable="true"><strong>Local Gateway (On-Premises PSTN):</strong> Leverages existing on-premises telecom trunks (SIP, T1/E1, PRI) via a Cisco Unified Border Element (CUBE) or approved local gateway router. This allows for smooth, phased migrations from legacy PBXs.</li>
+                    </ul>
+                    <div class="workspace" data-section="sec2">
+                        <div class="workspace-title">PSTN & Trunking Notes</div>
+                        <div class="notes-area" contenteditable="true">Click to add carrier details, targeted porting timelines, or configuration requirements...</div>
+                        <div class="media-uploader-box">
+                            <p>Attach Carrier Map Graphic or Explainer Video</p>
+                            <div class="input-row">
+                                <input type="text" class="url-input" placeholder="Paste Image URL or YouTube Video URL here">
+                                <button class="btn btn-blue" onclick="addMedia(this)">Render Media</button>
+                            </div>
+                            <div class="media-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 3 -->
+                <div class="section-card">
+                    <h2 contenteditable="true">3. Network, Protocols, and Media Specifications</h2>
+                    <p contenteditable="true">The underlying technical matrix relies on open-standard communication protocols optimized for enterprise-grade Quality of Service (QoS).</p>
+                    <h3 style="font-size: 16px; color: var(--accent-green); margin: 10px 0;" contenteditable="true">Protocols and Signaling</h3>
+                    <ul>
+                        <li contenteditable="true"><strong>Signaling Protocol:</strong> Session Initiation Protocol (SIP) over TLS</li>
+                        <li contenteditable="true"><strong>Device Management:</strong> HTTPS, Next-Gen HTTP-based device activation codes, and TR-069/STUN for remote endpoints.</li>
+                        <li contenteditable="true"><strong>API Availability:</strong> Webhooks and extensive REST APIs via the Webex Developer Portal for third-party provisioning, call control, and administrative workflows.</li>
+                    </ul>
+                    <h3 style="font-size: 16px; color: var(--accent-green); margin: 15px 0 10px 0;" contenteditable="true">Media Codecs & Bandwidth Management</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th contenteditable="true">Audio/Video Codec</th>
+                                <th contenteditable="true">Bitrate Range</th>
+                                <th contenteditable="true">Channel Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td contenteditable="true"><strong>Opus (Adaptive)</strong></td>
+                                <td contenteditable="true">6 kbps - 510 kbps</td>
+                                <td contenteditable="true">Voice/Music Multi-stream</td>
+                            </tr>
+                            <tr>
+                                <td contenteditable="true"><strong>G.722 (Wideband)</strong></td>
+                                <td contenteditable="true">64 kbps</td>
+                                <td contenteditable="true">High Definition Voice</td>
+                            </tr>
+                            <tr>
+                                <td contenteditable="true"><strong>G.711 (μ-law/A-law)</strong></td>
+                                <td contenteditable="true">64 kbps</td>
+                                <td contenteditable="true">Legacy Voice Compatibility</td>
+                            </tr>
+                            <tr>
+                                <td contenteditable="true"><strong>H.264 (Video)</strong></td>
+                                <td contenteditable="true">Variable</td>
+                                <td contenteditable="true">Video Conferencing / Content Share</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="workspace" data-section="sec3">
+                        <div class="workspace-title">QoS & Bandwidth Calculations</div>
+                        <div class="notes-area" contenteditable="true">Click to document local site sizing calculations or WAN configuration parameters...</div>
+                        <div class="media-uploader-box">
+                            <p>Attach Traffic Matrix Graph or Wireshark Capture Screenshots</p>
+                            <div class="input-row">
+                                <input type="text" class="url-input" placeholder="Paste Image URL or YouTube Video URL here">
+                                <button class="btn btn-blue" onclick="addMedia(this)">Render Media</button>
+                            </div>
+                            <div class="media-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 4 -->
+                <div class="section-card">
+                    <h2 contenteditable="true">4. Security, Compliance & Encryption</h2>
+                    <p contenteditable="true">Security is embedded natively across the entire Webex signaling and media path infrastructure layout.</p>
+                    <ul>
+                        <li contenteditable="true"><strong>Data in Transit:</strong> Signaling is encrypted via TLS 1.2 or TLS 1.3. Media streams are encrypted using <strong>SRTP (Secure Real-time Transport Protocol)</strong> with AES-256 encryption keys.</li>
+                        <li contenteditable="true"><strong>Data at Rest:</strong> Call recordings, voicemail data, and user profile databases are encrypted via enterprise-managed or Cisco-managed keys using AES-256.</li>
+                        <li contenteditable="true"><strong>Identity & Authentication:</strong> OAuth 2.0, SAML 2.0 Single Sign-On (SSO), and native Multi-Factor Authentication (MFA) integrations via Cisco Duo.</li>
+                        <li contenteditable="true"><strong>Compliance Matrix:</strong> SOC 2 Type II, ISO/IEC 27001, HIPAA-ready, GDPR compliant, and FedRAMP authorized infrastructure status.</li>
+                    </ul>
+                    <div class="workspace" data-section="sec4">
+                        <div class="workspace-title">InfoSec & Compliance Approvals</div>
+                        <div class="notes-area" contenteditable="true">Click to specify company token configurations, data retention policies, or custom compliance scopes...</div>
+                        <div class="media-uploader-box">
+                            <p>Attach Compliance Diagrams or Custom Security Architecture Images</p>
+                            <div class="input-row">
+                                <input type="text" class="url-input" placeholder="Paste Image URL or YouTube Video URL here">
+                                <button class="btn btn-blue" onclick="addMedia(this)">Render Media</button>
+                            </div>
+                            <div class="media-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 5 -->
+                <div class="section-card">
+                    <h2 contenteditable="true">5. Device & Endpoint Ecosystem</h2>
+                    <p contenteditable="true">Webex Calling supports a wide matrix of endpoints, allowing automated onboarding and remote firmware provisioning structures.</p>
+                    <ul>
+                        <li contenteditable="true"><strong>Cisco Multiplatform Phones (MPP):</strong> Fully supported series include the Cisco IP Phone 6800, 7800, 8800, and 9800 Series Desk Phones.</li>
+                        <li contenteditable="true"><strong>Webex Video Devices:</strong> Webex Desk Series, Webex Board, Room Kits, and Room Bars featuring intelligent <strong>Proximity Awareness</strong> and seamless call handoff controls.</li>
+                        <li contenteditable="true"><strong>Soft Clients:</strong> Unified Webex App available natively across Windows, macOS, Apple iOS, Android, and compatible web browsers.</li>
+                        <li contenteditable="true"><strong>Third-Party SIP Devices:</strong> Support for validated third-party analog telephone adapters (ATAs) and standard compliance SIP endpoints.</li>
+                    </ul>
+                    <div class="workspace" data-section="sec5">
+                        <div class="workspace-title">Endpoint Sizing Notes</div>
+                        <div class="notes-area" contenteditable="true">Click to document target endpoints per site, hardware replacement cycles, or firmware versions...</div>
+                        <div class="media-uploader-box">
+                            <p>Attach Hardware Deployment Matrices or Device Images</p>
+                            <div class="input-row">
+                                <input type="text" class="url-input" placeholder="Paste Image URL or YouTube Video URL here">
+                                <button class="btn btn-blue" onclick="addMedia(this)">Render Media</button>
+                            </div>
+                            <div class="media-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 6 -->
+                <div class="section-card">
+                    <h2 contenteditable="true">6. Management, Diagnostics, and Analytics</h2>
+                    <p contenteditable="true">Centralized provisioning and monitoring are executed entirely through the <strong>Cisco Webex Control Hub</strong> interface panel.</p>
+                    <ul>
+                        <li contenteditable="true"><strong>Unified Provisioning:</strong> Single-pane-of-glass interface for user onboarding, phone number mapping, auto-attendant configuration, and hunt group administration rules.</li>
+                        <li contenteditable="true"><strong>Real-time Analytics:</strong> Hop-by-hop call quality telemetry, network utilization metrics, and jitter/packet-loss monitoring dashboards.</li>
+                        <li contenteditable="true"><strong>Troubleshooting Tools:</strong> Granular end-to-end call leg analysis with Per-Call Audio Quality indicators to isolate local network vs ISP/cloud tier constraints.</li>
+                        <li contenteditable="true"><strong>Integration Ecosystem:</strong> Native hooks into ecosystem applications such as Salesforce, Jira, ServiceNow, and custom web API components via the Webex App Hub.</li>
+                    </ul>
+                    <div class="workspace" data-section="sec6">
+                        <div class="workspace-title">Operational Workflow Notes</div>
+                        <div class="notes-area" contenteditable="true">Click to add provisioning workflows, team access configurations, or alerting hooks...</div>
+                        <div class="media-uploader-box">
+                            <p>Attach Dashboard Mockups or Control Hub Training Videos</p>
+                            <div class="input-row">
+                                <input type="text" class="url-input" placeholder="Paste Image URL or YouTube Video URL here">
+                                <button class="btn btn-blue" onclick="addMedia(this)">Render Media</button>
+                            </div>
+                            <div class="media-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== CONTROL MATRIX SCRIPTS ==================== -->
     <script>
         // ⚠️ PASTE YOUR COPIED GOOGLE DEPLOYMENT WEB APP URL HERE:
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuyykzyuI2UVEKmnzvuwkApIaAkzE5ytdOjwPJlkdDW93TdcsoDaBb2JtSV8eBI1juuQ/exec";
+        const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
 
         const heatmapData = [
             { category: "CISG", items: [{ name: "DC EA", dot: "red", arrow: "➔" }, { name: "DC Fabric", dot: "green", arrow: "↗" }, { name: "HCI/Nutanix", dot: "yellow", arrow: "➔" }, { name: "Intersight", dot: "yellow", arrow: "➔" }, { name: "MDS", dot: "red", arrow: "➔" }, { name: "Nexus", dot: "green", arrow: "↗" }, { name: "Nexus Dashboard", dot: "green", arrow: "↗" }, { name: "UCS", dot: "yellow", arrow: "➔" }, { name: "UCS-X", dot: "red", arrow: "➔" }] },
@@ -156,35 +564,77 @@
         let serverData = {};
         let currentActiveKey = "";
 
-        // Fetch central JSON file from Google Drive script
-        async function loadDatabase() {
-            try {
-                const response = await fetch(SCRIPT_URL);
-                serverData = await response.json();
-                document.getElementById('sync-status').innerText = "🟢 Connected to Google Drive File";
-                buildDashboard();
-            } catch (error) {
-                document.getElementById('sync-status').innerText = "🔴 Connection Error";
-                console.error("Failed to sync architecture database:", error);
-                buildDashboard(); // Fallback to fresh state render
+        // Handles switching between views
+        function switchView(viewName) {
+            document.querySelectorAll('.app-view').forEach(view => view.classList.remove('active-view'));
+            if (viewName === 'dashboard') {
+                document.getElementById('view-dashboard').classList.add('active-view');
+            } else if (viewName === 'datasheet') {
+                document.getElementById('view-datasheet').classList.add('active-view');
+                window.scrollTo(0,0);
             }
         }
 
-        // Push global changes to Google Drive
+        // Sets up keys for the contenteditable regions on the datasheet
+        function initializeDatasheetKeys() {
+            const editables = document.querySelectorAll('#view-datasheet [contenteditable="true"]');
+            editables.forEach((element, index) => {
+                element.setAttribute('data-db-key', `datasheet::text_block_${index}`);
+                element.addEventListener('blur', () => {
+                    const key = element.getAttribute('data-db-key');
+                    serverData[key] = element.innerHTML;
+                    syncToCloud();
+                });
+            });
+        }
+
+        async function loadDatabase() {
+            initializeDatasheetKeys();
+            try {
+                const response = await fetch(SCRIPT_URL);
+                serverData = await response.json();
+                updateSyncLabel("🟢 Connected to Google Drive File");
+                
+                buildDashboard();
+                
+                // Populate datasheet elements
+                const editables = document.querySelectorAll('#view-datasheet [contenteditable="true"]');
+                editables.forEach((element) => {
+                    const key = element.getAttribute('data-db-key');
+                    if (serverData[key]) element.innerHTML = serverData[key];
+                });
+
+                document.querySelectorAll('#view-datasheet .workspace').forEach((workspace) => {
+                    const secId = workspace.getAttribute('data-section');
+                    const savedUrl = serverData[`datasheet::media_${secId}`];
+                    if (savedUrl) renderMediaElement(savedUrl, workspace.querySelector('.media-container'));
+                });
+
+            } catch (error) {
+                updateSyncLabel("🔴 Connection Error");
+                console.error("Failed to sync architecture database:", error);
+                buildDashboard();
+            }
+        }
+
         async function syncToCloud() {
-            document.getElementById('sync-status').innerText = "⏳ Saving to cloud...";
+            updateSyncLabel("⏳ Saving to cloud...");
             try {
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Bypasses CORS variations cleanly for webapp wrappers
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(serverData)
                 });
-                // Since 'no-cors' doesn't return full text statuses, we smoothly update visual tracking
-                setTimeout(() => { document.getElementById('sync-status').innerText = "🟢 Saved to Google Drive File"; }, 800);
+                setTimeout(() => { updateSyncLabel("🟢 Saved to Google Drive File"); }, 800);
             } catch (err) {
-                document.getElementById('sync-status').innerText = "🔴 Save failed";
+                updateSyncLabel("🔴 Save failed");
             }
+        }
+
+        function updateSyncLabel(msg) {
+            document.getElementById('sync-status').innerText = msg;
+            document.getElementById('datasheet-sync-status').innerText = msg;
         }
 
         function buildDashboard() {
@@ -233,8 +683,8 @@
                             </select>
                         </div>
                         <div class="item-text-wrapper">
-                            <span>${item.name}</span>
-                            <a class="product-link" data-cat="${catBlock.category}" data-name="${item.name}" data-key="${storageKey}">(product)</a>
+                            <span class="item-clickable-text" data-cat="${catBlock.category}" data-name="${item.name}" data-key="${storageKey}">${item.name}</span>
+                            <span class="product-link" onclick="switchView('datasheet')">(product)</span>
                         </div>
                     `;
                     list.appendChild(row);
@@ -243,7 +693,7 @@
                 grid.appendChild(card);
             });
 
-            // Inline changes fire instantaneous cloud sync requests
+            // Event binding hooks
             document.querySelectorAll('.color-picker').forEach(select => {
                 select.addEventListener('change', (e) => {
                     const key = e.target.getAttribute('data-key');
@@ -262,8 +712,8 @@
                 });
             });
 
-            document.querySelectorAll('.product-link').forEach(link => {
-                link.addEventListener('click', (e) => {
+            document.querySelectorAll('.item-clickable-text').forEach(textElem => {
+                textElem.addEventListener('click', (e) => {
                     openPanel(e.target.getAttribute('data-cat'), e.target.getAttribute('data-name'), e.target.getAttribute('data-key'));
                 });
             });
@@ -299,8 +749,45 @@
             serverData[currentActiveKey].owner = document.getElementById('detail-owner').value;
             
             closePanel();
-            buildDashboard(); // Update visuals immediately
-            await syncToCloud(); // Push text payload out to central Drive
+            buildDashboard();
+            await syncToCloud();
+        }
+
+        // Datasheet Dynamic Asset Render Engines
+        function addMedia(button) {
+            const input = button.previousElementSibling;
+            const url = input.value.trim();
+            const workspace = button.closest('.workspace');
+            const secId = workspace.getAttribute('data-section');
+            const container = workspace.querySelector('.media-container');
+            
+            if (!url) return;
+            renderMediaElement(url, container);
+            
+            serverData[`datasheet::media_${secId}`] = url;
+            syncToCloud();
+            input.value = '';
+        }
+
+        function renderMediaElement(url, container) {
+            container.innerHTML = ''; 
+            if (url.includes('youtube.com/') || url.includes('youtu.be/')) {
+                let videoId = '';
+                if (url.includes('v=')) videoId = url.split('v=')[1].split('&')[0];
+                else if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1].split('?')[0];
+                else if (url.includes('embed/')) videoId = url.split('embed/')[1].split('?')[0];
+                
+                if (videoId) {
+                    container.innerHTML = `<div class="video-wrapper"><iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe></div>`;
+                } else {
+                    container.innerHTML = `<p style="color:red; font-size:12px;">Failed to parse YouTube ID string.</p>`;
+                }
+            } else {
+                const img = document.createElement('img');
+                img.src = url;
+                img.onerror = function() { container.innerHTML = `<p style="color:red; font-size:12px;">Failed to load image asset source.</p>`; };
+                container.appendChild(img);
+            }
         }
 
         window.onload = loadDatabase;
