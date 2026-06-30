@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KOHLS_L6 Collaborative Heatmap</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-header-bg: #112277;
+            --item-bg-even: #ffffff;
+            --item-bg-odd: #f8faff;
+            --text-color: #333;
+            --border-color: #e1e4e8;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-color);
+        }
+        header {
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { color: #1122cc; margin: 0; font-size: 28px; font-weight: 600; }
+        .loading-status { font-weight: bold; font-size: 14px; color: #666; }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            align-items: start;
+        }
+        .category-card {
+            background-color: #ebf3fc;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        .category-header {
+            background-color: var(--card-header-bg);
+            color: white;
+            padding: 10px 12px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .items-list { list-style: none; padding: 0; margin: 0; }
+        .item-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid #eef2f7;
+            font-size: 12px;
+            background-color: var(--item-bg-even);
+        }
+        .item-row:nth-child(odd) { background-color: var(--item-bg-odd); }
+        .controls-group { display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; }
+        .inline-select {
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background: white;
+            font-size: 11px;
+            padding: 1px;
+            cursor: pointer;
+        }
+        .item-text-wrapper { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .product-link { color: #1122cc; text-decoration: none; font-size: 11px; margin-left: 5px; cursor: pointer; font-weight: bold; }
+        .product-link:hover { text-decoration: underline; }
+        
+        /* Side Panel styling */
+        .details-panel {
+            position: fixed; top: 0; right: -450px; width: 400px; height: 100%;
+            background-color: white; box-shadow: -4px 0 15px rgba(0,0,0,0.15);
+            transition: right 0.3s ease-in-out; z-index: 1000; padding: 25px;
+            box-sizing: border-box; display: flex; flex-direction: column;
+        }
+        .details-panel.open { right: 0; }
+        .panel-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: none; z-index: 999; }
+        .panel-backdrop.show { display: block; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px; }
+        .panel-header h2 { margin: 0; font-size: 20px; color: var(--card-header-bg); }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #888; }
+        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+        .form-group label { font-weight: 600; margin-bottom: 5px; font-size: 12px; text-transform: uppercase; color: #666; }
+        .form-group textarea, .form-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .form-group textarea { resize: vertical; height: 100px; }
+        .save-btn { background-color: #1122cc; color: white; border: none; padding: 10px; border-radius: 4px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: auto; }
+        .save-btn:disabled { background-color: #aaa; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>KOHLS_L6 Architecture Dashboard</h1>
+        <div class="loading-status" id="sync-status">🔄 Syncing with Google Drive...</div>
+    </header>
+
+    <div class="grid-container" id="dashboard-grid"></div>
+
+    <div class="panel-backdrop" id="backdrop" onclick="closePanel()"></div>
+    <div class="details-panel" id="details-panel">
+        <div class="panel-header">
+            <div>
+                <span id="panel-category" style="font-size: 12px; font-weight: bold; color: #666; text-transform: uppercase;">Product Specification</span>
+                <h2 id="panel-title">Item Name</h2>
+            </div>
+            <button class="close-btn" onclick="closePanel()">&times;</button>
+        </div>
+        
+        <div class="form-group">
+            <label>Product Version / SKU Details</label>
+            <input type="text" id="detail-sku" placeholder="e.g., Flex 4.0, Enterprise Agreement Multi-Suite">
+        </div>
+        <div class="form-group">
+            <label>Competitor Footprint Details</label>
+            <input type="text" id="detail-competitor" placeholder="e.g., Microsoft Teams, Zoom, Palo Alto">
+        </div>
+        <div class="form-group">
+            <label>Architectural Notes / Strategy</label>
+            <textarea id="detail-notes" placeholder="Enter sizing updates, migration roadmap targets, security hurdles..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Opportunity Owner</label>
+            <input type="text" id="detail-owner" placeholder="Lead Consulting Systems Engineer">
+        </div>
+
+        <button class="save-btn" id="save-btn" onclick="saveDetails()">Save Product Details</button>
+    </div>
+
+    <script>
+        // ⚠️ PASTE YOUR COPIED GOOGLE DEPLOYMENT WEB APP URL HERE:
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuyykzyuI2UVEKmnzvuwkApIaAkzE5ytdOjwPJlkdDW93TdcsoDaBb2JtSV8eBI1juuQ/exec";
+
+        const heatmapData = [
+            { category: "CISG", items: [{ name: "DC EA", dot: "red", arrow: "➔" }, { name: "DC Fabric", dot: "green", arrow: "↗" }, { name: "HCI/Nutanix", dot: "yellow", arrow: "➔" }, { name: "Intersight", dot: "yellow", arrow: "➔" }, { name: "MDS", dot: "red", arrow: "➔" }, { name: "Nexus", dot: "green", arrow: "↗" }, { name: "Nexus Dashboard", dot: "green", arrow: "↗" }, { name: "UCS", dot: "yellow", arrow: "➔" }, { name: "UCS-X", dot: "red", arrow: "➔" }] },
+            { category: "Enterprise Networking", items: [{ name: "Campus Fabric", dot: "yellow", arrow: "➔" }, { name: "Catalyst Center", dot: "green", arrow: "↗" }, { name: "EN EA", dot: "green", arrow: "↗" }, { name: "Meraki EA", dot: "green", arrow: "↗" }, { name: "SDWAN", dot: "yellow", arrow: "↘" }, { name: "Spaces", dot: "yellow", arrow: "↘" }, { name: "Switching", dot: "green", arrow: "↗" }, { name: "Wireless", dot: "green", arrow: "↑" }] },
+            { category: "UC", items: [{ name: "Calling", dot: "red", arrow: "↓" }, { name: "Cloud Calling", dot: "red", arrow: "↓" }, { name: "Cloud Contact Center", dot: "red", arrow: "↓" }, { name: "Collab EA", dot: "yellow", arrow: "↘" }, { name: "Contact Center", dot: "red", arrow: "↓" }, { name: "Meetings", dot: "red", arrow: "↓" }, { name: "Video Endpoints", dot: "yellow", arrow: "↓" }, { name: "Webex Connect / CPaaS", dot: "red", arrow: "↓" }] },
+            { category: "Cloud", items: [{ name: "DevOps/IaC/Automation", dot: "red", arrow: "↓" }] },
+            { category: "Services", items: [{ name: "CMS", dot: "red", arrow: "↓" }, { name: "CX EA", dot: "red", arrow: "↓" }, { name: "Expert Care(HTOM/HTE)", dot: "green", arrow: "↗" }, { name: "LCS/BCS", dot: "yellow", arrow: "↗" }, { name: "Solution Support (Enh/Prem)", dot: "yellow", arrow: "↗" }, { name: "Success Tracks (CX Cloud)", dot: "yellow", arrow: "↗" }] },
+            { category: "Security", items: [{ name: "CDO/FMC", dot: "red", arrow: "↓" }, { name: "DDOS (Radware)", dot: "red", arrow: "↓" }, { name: "Email", dot: "green", arrow: "↗" }, { name: "Firepower", dot: "red", arrow: "↓" }, { name: "Incident Response", dot: "green", arrow: "↗" }, { name: "ISE", dot: "green", arrow: "↗" }, { name: "Security EA", dot: "yellow", arrow: "↘" }, { name: "SIG (Umbrella)", dot: "red", arrow: "↓" }, { name: "Splunk", dot: "red", arrow: "↓" }, { name: "XDR", dot: "red", arrow: "↓" }] },
+            { category: "Security-BPS", items: [{ name: "Endpoint(AMP)", dot: "yellow", arrow: "➔" }, { name: "Network Analytics", dot: "red", arrow: "↓" }, { name: "ThreatDefense (ETD)", dot: "yellow", arrow: "↓" }, { name: "XDR", dot: "yellow", arrow: "➔" }] },
+            { category: "Security-CPS", items: [{ name: "Attack Surface Mgmt", dot: "yellow", arrow: "↗" }, { name: "CASB/DLP", dot: "red", arrow: "↓" }, { name: "Kenna - RBVM", dot: "yellow", arrow: "↗" }, { name: "MultiCloud Defense", dot: "yellow", arrow: "↓" }, { name: "Panoptica", dot: "red", arrow: "↓" }, { name: "Secure Workload", dot: "yellow", arrow: "➔" }] },
+            { category: "Security-UPS", items: [{ name: "CASB/DLP", dot: "green", arrow: "➔" }, { name: "Cisco Secure Access", dot: "red", arrow: "↓" }, { name: "DNS (Umbrella)", dot: "yellow", arrow: "↘" }, { name: "Duo/SPA/ZTNA", dot: "red", arrow: "↓" }, { name: "SIG/SIA", dot: "red", arrow: "↓" }, { name: "VPN", dot: "yellow", arrow: "↘" }] },
+            { category: "IOT", items: [{ name: "Connected Grid (Resilient Mesh)", dot: "red", arrow: "↓" }, { name: "Cybervision", dot: "red", arrow: "↓" }, { name: "IG Series Gateway", dot: "red", arrow: "↓" }, { name: "Industrial Routing", dot: "red", arrow: "↓" }, { name: "Industrial Security (FW & CV)", dot: "red", arrow: "↓" }, { name: "Industrial Switching", dot: "red", arrow: "↓" }, { name: "Industrial Wireless (WiFi, CURWB, ...)", dot: "red", arrow: "↓" }, { name: "IoT Network Mgnt (IOTOD,FND,IN...", dot: "red", arrow: "↓" }, { name: "IoT Operations Dashboard", dot: "red", arrow: "↓" }, { name: "LTE/PLTE/5G/P5G", dot: "red", arrow: "↓" }, { name: "MV/MT", dot: "red", arrow: "↓" }] },
+            { category: "Meraki", items: [{ name: "MR", dot: "green", arrow: "↗" }, { name: "MS", dot: "yellow", arrow: "↗" }, { name: "MX/Z, MG", dot: "yellow", arrow: "↘" }] },
+            { category: "CX", items: [{ name: "HTEC: HTE", dot: "red", arrow: "↓" }, { name: "HTEC: HTOM", dot: "red", arrow: "↓" }, { name: "HTEC: HTTS", dot: "red", arrow: "↓" }, { name: "LCS: Collaboration", dot: "red", arrow: "↓" }, { name: "LCS: Compute", dot: "red", arrow: "↓" }, { name: "LCS: DCN", dot: "red", arrow: "↓" }, { name: "LCS: EN Routing", dot: "red", arrow: "↓" }, { name: "LCS: EN Switching", dot: "red", arrow: "↓" }, { name: "LCS: Other", dot: "red", arrow: "↓" }, { name: "LCS: Security", dot: "red", arrow: "↓" }, { name: "LCS: SP Routing", dot: "red", arrow: "↓" }, { name: "LCS: Wireless", dot: "red", arrow: "↓" }] },
+            { category: "Splunk", items: [{ name: "AppD", dot: "red", arrow: "↓" }, { name: "Observability Cloud", dot: "red", arrow: "↓" }, { name: "ThousandEyes", dot: "yellow", arrow: "↗" }] }
+        ];
+
+        let serverData = {};
+        let currentActiveKey = "";
+
+        // Fetch central JSON file from Google Drive script
+        async function loadDatabase() {
+            try {
+                const response = await fetch(SCRIPT_URL);
+                serverData = await response.json();
+                document.getElementById('sync-status').innerText = "🟢 Connected to Google Drive File";
+                buildDashboard();
+            } catch (error) {
+                document.getElementById('sync-status').innerText = "🔴 Connection Error";
+                console.error("Failed to sync architecture database:", error);
+                buildDashboard(); // Fallback to fresh state render
+            }
+        }
+
+        // Push global changes to Google Drive
+        async function syncToCloud() {
+            document.getElementById('sync-status').innerText = "⏳ Saving to cloud...";
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Bypasses CORS variations cleanly for webapp wrappers
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(serverData)
+                });
+                // Since 'no-cors' doesn't return full text statuses, we smoothly update visual tracking
+                setTimeout(() => { document.getElementById('sync-status').innerText = "🟢 Saved to Google Drive File"; }, 800);
+            } catch (err) {
+                document.getElementById('sync-status').innerText = "🔴 Save failed";
+            }
+        }
+
+        function buildDashboard() {
+            const grid = document.getElementById('dashboard-grid');
+            grid.innerHTML = "";
+            
+            heatmapData.forEach(catBlock => {
+                const card = document.createElement('div');
+                card.className = 'category-card';
+                
+                const header = document.createElement('div');
+                header.className = 'category-header';
+                header.innerText = catBlock.category;
+                card.appendChild(header);
+                
+                const list = document.createElement('ul');
+                list.className = 'items-list';
+                
+                catBlock.items.forEach(item => {
+                    const row = document.createElement('li');
+                    row.className = 'item-row';
+                    
+                    const storageKey = `${catBlock.category}::${item.name}`;
+                    const savedData = serverData[storageKey] || {};
+                    
+                    const currentDot = savedData.color || item.dot;
+                    const currentArrow = savedData.arrow || item.arrow;
+
+                    if(savedData.notes || savedData.sku || savedData.competitor) {
+                        row.style.borderLeft = "4px solid #1122cc";
+                    }
+
+                    row.innerHTML = `
+                        <div class="controls-group">
+                            <select class="inline-select color-picker" data-key="${storageKey}">
+                                <option value="red" ${currentDot === 'red' ? 'selected' : ''}>🔴</option>
+                                <option value="yellow" ${currentDot === 'yellow' ? 'selected' : ''}>🟡</option>
+                                <option value="green" ${currentDot === 'green' ? 'selected' : ''}>🟢</option>
+                            </select>
+                            <select class="inline-select arrow-picker" data-key="${storageKey}">
+                                <option value="➔" ${currentArrow === '➔' ? 'selected' : ''}>➔</option>
+                                <option value="↑" ${currentArrow === '↑' ? 'selected' : ''}>↑</option>
+                                <option value="↓" ${currentArrow === '↓' ? 'selected' : ''}>↓</option>
+                                <option value="↗" ${currentArrow === '↗' ? 'selected' : ''}>↗</option>
+                                <option value="↘" ${currentArrow === '↘' ? 'selected' : ''}>↘</option>
+                            </select>
+                        </div>
+                        <div class="item-text-wrapper">
+                            <span>${item.name}</span>
+                            <a class="product-link" data-cat="${catBlock.category}" data-name="${item.name}" data-key="${storageKey}">(product)</a>
+                        </div>
+                    `;
+                    list.appendChild(row);
+                });
+                card.appendChild(list);
+                grid.appendChild(card);
+            });
+
+            // Inline changes fire instantaneous cloud sync requests
+            document.querySelectorAll('.color-picker').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const key = e.target.getAttribute('data-key');
+                    if(!serverData[key]) serverData[key] = {};
+                    serverData[key].color = e.target.value;
+                    syncToCloud();
+                });
+            });
+
+            document.querySelectorAll('.arrow-picker').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const key = e.target.getAttribute('data-key');
+                    if(!serverData[key]) serverData[key] = {};
+                    serverData[key].arrow = e.target.value;
+                    syncToCloud();
+                });
+            });
+
+            document.querySelectorAll('.product-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    openPanel(e.target.getAttribute('data-cat'), e.target.getAttribute('data-name'), e.target.getAttribute('data-key'));
+                });
+            });
+        }
+
+        function openPanel(category, itemName, storageKey) {
+            currentActiveKey = storageKey;
+            document.getElementById('panel-category').innerText = `${category} Strategy`;
+            document.getElementById('panel-title').innerText = itemName;
+            
+            const data = serverData[storageKey] || {};
+            document.getElementById('detail-sku').value = data.sku || "";
+            document.getElementById('detail-competitor').value = data.competitor || "";
+            document.getElementById('detail-notes').value = data.notes || "";
+            document.getElementById('detail-owner').value = data.owner || "";
+
+            document.getElementById('details-panel').classList.add('open');
+            document.getElementById('backdrop').classList.add('show');
+        }
+
+        function closePanel() {
+            document.getElementById('details-panel').classList.remove('open');
+            document.getElementById('backdrop').classList.remove('show');
+        }
+
+        async function saveDetails() {
+            if (!currentActiveKey) return;
+            
+            if(!serverData[currentActiveKey]) serverData[currentActiveKey] = {};
+            serverData[currentActiveKey].sku = document.getElementById('detail-sku').value;
+            serverData[currentActiveKey].competitor = document.getElementById('detail-competitor').value;
+            serverData[currentActiveKey].notes = document.getElementById('detail-notes').value;
+            serverData[currentActiveKey].owner = document.getElementById('detail-owner').value;
+            
+            closePanel();
+            buildDashboard(); // Update visuals immediately
+            await syncToCloud(); // Push text payload out to central Drive
+        }
+
+        window.onload = loadDatabase;
+    </script>
+</body>
+</html>
